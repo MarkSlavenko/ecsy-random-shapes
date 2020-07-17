@@ -1,161 +1,137 @@
 import { World, System, TagComponent, Component, Types } from "ecsy";
 
-const NUM_ELEMENTS = 600;
+const NUM_ELEMENTS = 40;
 const SPEED_MULTIPLIER = 0.1;
-const SHAPE_SIZE = 20;
-const SHAPE_HALF_SIZE = SHAPE_SIZE / 2;
 
-// Initialize canvas
 let canvas = document.querySelector("canvas");
 let canvasWidth = canvas.width = window.innerWidth;
 let canvasHeight = canvas.height = window.innerHeight;
 let ctx = canvas.getContext("2d");
-//----------------------
-// Components
-//----------------------
 
-// Velocity component
 class Velocity {
   constructor() {
     this.x = this.y = 0;
   }
 }
-// Position component
+
 class Position {
   constructor() {
     this.x = this.y = 0;
   }
 }
 
-// Shape component
 class Shape {
   constructor() {
     this.primitive = 'box';
   }
 }
 
-// Renderable component
+class Size {
+  constructor() {
+    this.value = 0;
+  }
+}
+
 class Renderable extends TagComponent {}
 
-//----------------------
-// Systems
-//----------------------
-
-// MovableSystem
 class MovableSystem extends System {
-  // This method will get called on every frame by default
   execute(delta, time) {
-    // Iterate through all the entities on the query
     this.queries.moving.results.forEach(entity => {
-      var velocity = entity.getComponent(Velocity);
-      var position = entity.getMutableComponent(Position);
+      const velocity = entity.getComponent(Velocity);
+      const position = entity.getMutableComponent(Position);
+      const size = entity.getComponent(Size).value;
+
       position.x += velocity.x * delta;
       position.y += velocity.y * delta;
       
-      if (position.x > canvasWidth + SHAPE_HALF_SIZE) position.x = - SHAPE_HALF_SIZE;
-      if (position.x < - SHAPE_HALF_SIZE) position.x = canvasWidth + SHAPE_HALF_SIZE;
-      if (position.y > canvasHeight + SHAPE_HALF_SIZE) position.y = - SHAPE_HALF_SIZE;
-      if (position.y < - SHAPE_HALF_SIZE) position.y = canvasHeight + SHAPE_HALF_SIZE;
+      if (position.x > canvasWidth + size) position.x = - size;
+      if (position.x < - size) position.x = canvasWidth + size;
+      if (position.y > canvasHeight + size) position.y = - size;
+      if (position.y < - size) position.y = canvasHeight + size;
     });
   }
 }
-// Define a query of entities that have "Velocity" and "Position" components
+
 MovableSystem.queries = {
   moving: {
     components: [Velocity, Position]
   }
 }
-// RendererSystem
+
 class RendererSystem extends System {
-  // This method will get called on every frame by default
   execute(delta, time) {
     
     ctx.globalAlpha = 1;
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-    //ctx.globalAlpha = 0.6;
     
-    // Iterate through all the entities on the query
     this.queries.renderables.results.forEach(entity => {
-      var shape = entity.getComponent(Shape);
-      var position = entity.getComponent(Position);
+      const shape = entity.getComponent(Shape);
+      const position = entity.getComponent(Position);
+      const size = entity.getComponent(Size);
+
       if (shape.primitive === 'box') {
-        this.drawBox(position);
+        this.drawBox(position, size.value);
       } else {
-        this.drawCircle(position);
+        this.drawCircle(position, size.value);
       }
     });
   }
   
-  drawCircle(position) {
-    ctx.fillStyle = "#888";
-    ctx.beginPath();
-    ctx.arc(position.x, position.y, SHAPE_HALF_SIZE, 0, 2 * Math.PI, false);
-    ctx.fill();
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = "#222";
-    ctx.stroke();    
-  }
+drawCircle(position, size) {
+  ctx.fillStyle = "#888";
+  ctx.beginPath();
+  ctx.arc(position.x, position.y, size, 0, 2 * Math.PI, false);
+  ctx.fill();
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = "#222";
+  ctx.stroke();    
+}
   
-  drawBox(position) {
-    ctx.beginPath();
-    ctx.rect(position.x - SHAPE_HALF_SIZE, position.y - SHAPE_HALF_SIZE, SHAPE_SIZE, SHAPE_SIZE);
-    ctx.fillStyle= "#f28d89";
-    ctx.fill();
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = "#800904";
-    ctx.stroke();  
+drawBox(position, size) {
+  ctx.beginPath();
+  ctx.rect(position.x - size, position.y - size, size, size);
+  ctx.fillStyle= "#f28d89";
+  ctx.fill();
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = "#800904";
+  ctx.stroke();  
   }
 }
-// Define a query of entities that have "Renderable" and "Shape" components
+
 RendererSystem.queries = {
   renderables: { components: [Renderable, Shape] }
 }
 
-// Create world and register the systems on it
-var world = new World();
+
+const world = new World();
 world
+  .registerComponent(Velocity)
+  .registerComponent(Position)
+  .registerComponent(Shape)
+  .registerComponent(Size)
+  .registerComponent(Renderable)
   .registerSystem(MovableSystem)
   .registerSystem(RendererSystem);
-// Some helper functions when creating the components
-function getRandomVelocity() {
-  return {
-    x: SPEED_MULTIPLIER * (2 * Math.random() - 1), 
-    y: SPEED_MULTIPLIER * (2 * Math.random() - 1)
-  };
-}
 
-function getRandomPosition() {
-  return { 
-    x: Math.random() * canvasWidth, 
-    y: Math.random() * canvasHeight
-  };
-}
 
-function getRandomShape() {
-    return {
-      primitive: Math.random() >= 0.5 ? 'circle' : 'box'
-    };
-}
+const getRandomVelocity = () => ({
+  x: SPEED_MULTIPLIER * (2 * Math.random() - 1),  
+  y: SPEED_MULTIPLIER * (2 * Math.random() - 1)
+})
 
-for (let i = 0; i < NUM_ELEMENTS; i++) {
-  world
-    .createEntity()
-    .addComponent(Velocity, getRandomVelocity())
-    .addComponent(Shape, getRandomShape())
-    .addComponent(Position, getRandomPosition())
-    .addComponent(Renderable)        
-}
+const getRandomShape = () => ({
+  primitive: Math.random() >= 0.5 ? 'circle' : 'box'
+})
       
-// Run!
 function run() {
-  // Compute delta and elapsed time
-  var time = performance.now();
-  var delta = time - lastTime;
-  // Run all the systems
+  const time = performance.now();
+  const delta = time - lastTime;
+
   world.execute(delta, time);
   lastTime = time;
   requestAnimationFrame(run);
 }
+
 var lastTime = performance.now();
 run();
