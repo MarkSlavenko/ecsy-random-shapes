@@ -2,7 +2,7 @@
   "name": "ecsy-random-shapes",
   "version": "1.0.0",
   "main": "index.js",
-  "license": "MIT",
+	"homepage": "http://markslavenko.github.io/ecsy-random-shapes",
   "scripts": {
     "start": "webpack-dev-server --mode development",
     "build": "webpack --mode production",
