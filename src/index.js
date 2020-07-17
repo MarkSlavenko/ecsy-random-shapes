@@ -115,23 +115,25 @@ world
   .registerSystem(RendererSystem);
 
 
-const getRandomVelocity = () => ({
-  x: SPEED_MULTIPLIER * (2 * Math.random() - 1),  
-  y: SPEED_MULTIPLIER * (2 * Math.random() - 1)
+const getRandomVelocity = (speed) => ({
+  x: speed * (2 * Math.random() - 1),  
+  y: speed * (2 * Math.random() - 1)
 })
 
 const getRandomShape = () => ({
   primitive: Math.random() >= 0.5 ? 'circle' : 'box'
 })
-      
-function run() {
+
+const getRandomSize = (min, max) => ({
+  value: min + Math.random() * (max - min)
+})
+
+let lastTime = performance.now();
+(function run() {
   const time = performance.now();
   const delta = time - lastTime;
 
   world.execute(delta, time);
   lastTime = time;
   requestAnimationFrame(run);
-}
-
-var lastTime = performance.now();
-run();
+})();
