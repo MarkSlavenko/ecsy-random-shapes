@@ -1,12 +1,12 @@
-import { World, System, TagComponent, Component, Types } from "ecsy";
+import { World, System, TagComponent} from "ecsy";
 
 const NUM_ELEMENTS = 40;
-const SPEED_MULTIPLIER = 0.1;
+const SPEED_MULTIPLIER = 0.15;
 
-let canvas = document.querySelector("canvas");
-let canvasWidth = canvas.width = window.innerWidth;
-let canvasHeight = canvas.height = window.innerHeight;
-let ctx = canvas.getContext("2d");
+const canvas = document.querySelector("canvas");
+const canvasWidth = canvas.width = window.innerWidth;
+const canvasHeight = canvas.height = window.innerHeight;
+const ctx = canvas.getContext("2d");
 
 class Velocity {
   constructor() {
@@ -35,19 +35,13 @@ class Size {
 class Renderable extends TagComponent {}
 
 class MovableSystem extends System {
-  execute(delta, time) {
+  execute(delta) {
     this.queries.moving.results.forEach(entity => {
       const velocity = entity.getComponent(Velocity);
       const position = entity.getMutableComponent(Position);
-      const size = entity.getComponent(Size).value;
 
       position.x += velocity.x * delta;
       position.y += velocity.y * delta;
-      
-      if (position.x > canvasWidth + size) position.x = - size;
-      if (position.x < - size) position.x = canvasWidth + size;
-      if (position.y > canvasHeight + size) position.y = - size;
-      if (position.y < - size) position.y = canvasHeight + size;
     });
   }
 }
@@ -59,8 +53,7 @@ MovableSystem.queries = {
 }
 
 class RendererSystem extends System {
-  execute(delta, time) {
-    
+  execute() {
     ctx.globalAlpha = 1;
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
@@ -103,7 +96,6 @@ RendererSystem.queries = {
   renderables: { components: [Renderable, Shape] }
 }
 
-
 const world = new World();
 world
   .registerComponent(Velocity)
@@ -114,19 +106,18 @@ world
   .registerSystem(MovableSystem)
   .registerSystem(RendererSystem);
 
-
 const getRandomVelocity = (speed) => ({
   x: speed * (2 * Math.random() - 1),  
   y: speed * (2 * Math.random() - 1)
-})
+});
 
 const getRandomShape = () => ({
   primitive: Math.random() >= 0.5 ? 'circle' : 'box'
-})
+});
 
 const getRandomSize = (min, max) => ({
   value: min + Math.random() * (max - min)
-})
+});
 
 let lastTime = performance.now();
 (function run() {
@@ -137,3 +128,18 @@ let lastTime = performance.now();
   lastTime = time;
   requestAnimationFrame(run);
 })();
+
+canvas.addEventListener('mousedown', event => {
+  for(let i = 0; i < NUM_ELEMENTS; i += 1) {
+    const entity = world.createEntity();
+
+    entity
+    .addComponent(Shape, getRandomShape())
+    .addComponent(Size, getRandomSize(1, 20))
+    .addComponent(Position, {x: event.offsetX, y: event.offsetY})
+    .addComponent(Velocity, getRandomVelocity(SPEED_MULTIPLIER))
+    .addComponent(Renderable)
+
+    setTimeout(() => entity.remove(), 1000 + Math.random() * 4000);
+  }
+});
